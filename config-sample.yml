@@ -1,0 +1,12 @@
+main:
+    git_repo: # git repo for kernel code
+    qcow_image: # location of the qcow image
+    block_dev: # block device
+    bridge: # bridge name
+    vm_username: # username of the VM
+    vm_password: # password of the VM
+    log_level: # log level DEBUG, INFO, ERROR
+test_vm_config:
+    num_of_vm: # number of VM to be launched
+    cpu: # number of cpu of each VM in step 2
+    ram: # RAM size in MB of each VM, in step 2
