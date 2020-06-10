@@ -5,20 +5,19 @@ import subprocess
 import time
 from getpass import getpass
 from datetime import datetime
-from pathlib import Path
 
 from do_ssh import SSH
 from do_softROCE import softROCE
 
 # CONST
-VM_MY_FOLDER_NAME = "auto_qemu"
+LINUX_KERNEL_FOLDER_NAME = "./data/linux/"
 LOCAL_LOG_FOLDER = "./logs/"
 ERROR = 1
 INFO = 2
 DEBUG = 3
 
 # GLOBALS
-cmd_2 = "qemu-system-x86_64 -smp {cpu} -m {ram}M -nographic -snapshot -drive id=d0,file={qcow_image},if=none,format=qcow2 -device virtio-blk-pci,drive=d0,scsi=off -kernel {bzImage} -append 'root=/dev/{blk_dev}' -net nic,macaddr=52:54:00:12:43:{rand_octet} -net bridge,br={bridge}"
+qemu_cmd = "qemu-system-x86_64 -smp {cpu} -m {ram}M -nographic -snapshot -drive id=d0,file={qcow_image},if=none,format=qcow2 -device virtio-blk-pci,drive=d0,scsi=off -kernel {bzImage} -append 'root=/dev/{blk_dev}' -net nic,macaddr=52:54:00:12:43:{rand_octet} -net bridge,br={bridge}"
 
 log_dict = {
   "ERROR": 1,
@@ -110,10 +109,6 @@ class auto_qemu:
 			self.__log(ERROR, "Number of VMs for test should be atleast 2")
 			return False
 
-		if not Path("./data/kernel_config_file").is_file():
-			self.__log(ERROR, "No 'kernel_config_file' in the './data/' folder")
-			return False
-
 		return True
 
 	def __run_command_remote(self, command, my_ip):
@@ -151,33 +146,13 @@ class auto_qemu:
 			return False
 		self.__log(DEBUG, "True")
 
-		command = "dpkg -s sshpass"
-		self.__log(DEBUG, command)
-		status, status_string = self.__run_command_local(command)
-		if status:
-			self.__log(DEBUG, "Fail! ", status_string)
-			return False
-		self.__log(DEBUG, "True")
-
-		command = "dpkg -s net-tools"
-		self.__log(DEBUG, command)
-		status, status_string = self.__run_command_local(command)
-		if status:
-			self.__log(DEBUG, "Fail! ", status_string)
-			return False
-		self.__log(DEBUG, "True")
+		# TODO
+		# Add dependency check for kernel make tools
+		# flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf
 
 		return True
 
 	def __check_vm_dependencies(self, my_ip):
-		command = "dpkg -s net-tools"
-		self.__log(DEBUG, command)
-		status, status_string = self.__run_command_remote(command, my_ip)
-		self.__log(DEBUG, status)
-		if not status:
-			self.__log(DEBUG, status_string)
-			return False
-
 		command = "dpkg -s openssh-server"
 		self.__log(DEBUG, command)
 		status, status_string = self.__run_command_remote(command, my_ip)
@@ -212,7 +187,7 @@ class auto_qemu:
 					return line[:line.index(" ")]
 			ip_attempts += 1
 			self.__log(DEBUG, "Failed! Waiting 60 seconds before next try\n")
-			time.sleep(60)
+			time.sleep(30)
 		return None
 
 	def __ping_check(self, ping_attempts, my_ip):
@@ -229,10 +204,11 @@ class auto_qemu:
 		return False
 
 	def __shutdown_vm(self, vm_ip):
-		''' Sending a shutdown command and checking status is tricky
-			Sometimes the command executes successfully, but the system goes down
-			way too fast to send a successful return status and status_string.
-			So we are gonna rely on ping to confirm the shutdown
+		'''
+		Sending a shutdown command and checking status is tricky
+		Sometimes the command executes successfully, but the system goes down
+		way too fast to send a successful return status and status_string.
+		So we are gonna rely on ping to confirm the shutdown
 		'''
 		shutdown_attempts = 0
 		while shutdown_attempts < 5:
@@ -254,13 +230,13 @@ class auto_qemu:
 		feed_password = subprocess.Popen("echo " + self.host_password, stdout=subprocess.PIPE, shell=True)
 		status_string = subprocess.Popen(command, stdin=feed_password.stdout, stdout=subprocess.PIPE, shell=True)
 
-		self.__log(DEBUG, "Popen called. Wait for 2 mins.")
+		self.__log(DEBUG, "Popen called. Wait for 1 min.")
 		self.__log(DEBUG, status_string, "\n")
-		# waiting about 2 mins for the vm to spin up
-		time.sleep(120)
+		# waiting for a min for the vm to spin up
+		time.sleep(60)
 		return status_string
 
-	def __prepare_cmd_2(self, test_vm_cfg):
+	def __prepare_cmd(self, test_vm_cfg):
 		my_cpu = test_vm_cfg["cpu"]
 		my_ram = test_vm_cfg["ram"]
 
@@ -270,103 +246,98 @@ class auto_qemu:
 				self.all_mac_octets.append(my_rand_octet)
 				break
 
-		s = cmd_2.format(cpu = my_cpu, ram = my_ram, qcow_image = self.qcow_image, bzImage = self.bzImage, blk_dev = self.block_dev, rand_octet = my_rand_octet, bridge = self.bridge)
+		s = qemu_cmd.format(cpu = my_cpu, ram = my_ram, qcow_image = self.qcow_image, bzImage = self.bzImage, blk_dev = self.block_dev, rand_octet = my_rand_octet, bridge = self.bridge)
 		return s
 
 	def __build_git_create_image(self):
-		# TODO
-		return True
+		'''
+		Starting step 1
+		This function gets the linux code from the git repo
+		and builds the bzImage for the VMs
+		'''
 
 		# Delete folder if already exists
-		command = "rm -rf {path}/{folder}/".format(path = my_path, folder = VM_MY_FOLDER_NAME)
+		command = "rm -rf {folder}/".format(folder = LINUX_KERNEL_FOLDER_NAME)
 		self.__log(DEBUG, command)
-		status, status_string = self.__run_sudo_command_remote(command, my_ip)
-		if not status:
+		status, status_string = self.__run_command_local(command)
+		if status:
 			self.__log(DEBUG, status, status_string)
 			return False
 		self.__log(DEBUG, status_string)
 
-		# create a folder and update my_path
-		command = "mkdir -p {path}/{folder}/kernel".format(path = my_path, folder = VM_MY_FOLDER_NAME)
+		# create the folder
+		command = "mkdir -p {folder}".format(folder = LINUX_KERNEL_FOLDER_NAME)
 		self.__log(DEBUG, command)
-		status, status_string = self.__run_command_remote(command, my_ip)
-		if not status:
+		status, status_string = self.__run_command_local(command)
+		if status:
 			self.__log(DEBUG, status, status_string)
 			return False
-		my_path = my_path + "/" + VM_MY_FOLDER_NAME + "/" + "kernel/"
-		self.__log(INFO, "Main folder for cloning: {path}".format(path = my_path))
+		self.__log(INFO, "Main folder for cloning: {path}".format(path = LINUX_KERNEL_FOLDER_NAME))
 
-		# Confirm the full path to the folder
-		command = "ls {path}".format(path = my_path)
+		# Confirm that the folder exists
+		command = "ls {folder}".format(folder = LINUX_KERNEL_FOLDER_NAME)
 		self.__log(DEBUG, command)
-		status, status_string = self.__run_command_remote(command, my_ip)
-		if not status:
+		status, status_string = self.__run_command_local(command)
+		if status:
 			self.__log(DEBUG, status, status_string)
 			return False
 		self.__log(DEBUG, status_string)
 
+		self.__log(INFO, "Cloning the repo {repo} into {folder}".format(repo = self.git_repo, folder = LINUX_KERNEL_FOLDER_NAME))
 		# clone repo into TMP_PATH
-		command = "git clone {repo} {folder}".format(repo = self.git_repo, folder = my_path)
+		command = "git clone {repo} {folder}".format(repo = self.git_repo, folder = LINUX_KERNEL_FOLDER_NAME)
 		self.__log(DEBUG, command)
-		status, status_string = self.__run_command_remote(command, my_ip)
-		if not status:
+		status, status_string = self.__run_command_local(command)
+		if status:
 			self.__log(DEBUG, status, status_string)
 			return False
-		self.__log(DEBUG, status_string)
+		self.__log(DEBUG, status, status_string)
 		self.__log(INFO, "Done cloning.\n")
 
-		self.__log(INFO, "Starting the make process")
-		self.__log(INFO, "make & make modules_install takes some time, so sit back.")
-
-		# copy the default config file to the VM
-		command = "sshpass -p {password} scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ./data/kernel_config_file {username}@{ip}:{folder}/.config".format\
-					(password = self.my_password, username = self.my_username, ip = my_ip, folder = my_path)
+		# Temporary patch
+		# Apply patch to delay loading rnbd_server, and avoid the rtrs crash while boot
+		command = "patch -d {folder} -p1 < ./data/fix_rtrs_crash.patch".format(folder = LINUX_KERNEL_FOLDER_NAME)
 		self.__log(DEBUG, command)
 		status, status_string = self.__run_command_local(command)
 		if status:
 			self.__log(DEBUG, status, status_string)
 			return False
-		self.__log(DEBUG, "Pass: ", status_string)
+		self.__log(DEBUG, "Done: ", status_string)
+
+		self.__log(INFO, "Starting the make process")
+		self.__log(INFO, "This may take some time, so sit back.")
+
+		# copy the default config file to the linux folder
+		command = "cp ./default_kernel_config_file {folder}/.config".format(folder = LINUX_KERNEL_FOLDER_NAME)
+		self.__log(DEBUG, command)
+		status, status_string = self.__run_command_local(command)
+		if status:
+			self.__log(DEBUG, status, status_string)
+			return False
+		self.__log(DEBUG, "Done: ", status_string)
 
 		# Start the make
-		command = "make -C {folder} -j{cpu}".format(folder = my_path, cpu = my_cpu)
-		self.__log(DEBUG, command)
-		status, status_string = self.__run_command_remote(command, my_ip)
-		if not status:
-			self.__log(DEBUG, status, status_string)
-			return False
-		self.__log(DEBUG, "Pass!")
-		#self.__log(DEBUG, status_string)
-
-		# Install the modules
-		command = "make -C {folder} -j{cpu} modules_install".format(folder = my_path, cpu = my_cpu)
-		self.__log(DEBUG, command)
-		status, status_string = self.__run_sudo_command_remote(command, my_ip)
-		if not status:
-			self.__log(DEBUG, status, status_string)
-			return False
-		self.__log(DEBUG, "Pass!")
-		#self.__log(DEBUG, status_string)
-		#input("Test mode! Copy the bzImage")
-
-		self.__log(INFO, "Done make. Copying the bzImage back to host for step 2")
-
-		# copy bzImage from the VM to our ./data/ folder
-		command = "sshpass -p {password} scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {username}@{ip}:{folder}/arch/x86_64/boot/bzImage ./data/bzImage".format\
-					(password = self.my_password, username = self.my_username, ip = my_ip, folder = my_path)
+		command = "yes '' | make -C {folder} -j$(nproc) bzImage".format(folder = LINUX_KERNEL_FOLDER_NAME)
 		self.__log(DEBUG, command)
 		status, status_string = self.__run_command_local(command)
 		if status:
 			self.__log(DEBUG, status, status_string)
 			return False
-		self.__log(DEBUG, "Pass: ", status_string)
+		self.__log(DEBUG, "Done!")
+		#self.__log(DEBUG, status_string)
+
+		self.__log(INFO, "Done make. Copying the bzImage to data folder for step 2")
+
+		# copy bzImage to our ./data/ folder for step 2
+		command = "cp {folder}/arch/x86_64/boot/bzImage ./data/.".format(folder = LINUX_KERNEL_FOLDER_NAME)
+		self.__log(DEBUG, command)
+		status, status_string = self.__run_command_local(command)
+		if status:
+			self.__log(DEBUG, status, status_string)
+			return False
+		self.__log(DEBUG, "Done: ", status_string)
 		self.__log(INFO, "Got the bzImage.\n")
 
-		# shutdown the VM
-		self.__log(INFO, "Shutting down VM")
-		if not self.__shutdown_vm(my_ip):
-			self.__log(ERROR, "Shutdown failed.")
-			return False
 		return True
 
 	def __launch_vms(self, test_vm_cfg):
@@ -379,7 +350,7 @@ class auto_qemu:
 		self.__log(INFO, "Number of VMs to be launched: {vm_num}\n".format(vm_num = num_of_vm))
 
 		for i in range(num_of_vm):
-			my_cmd = self.__prepare_cmd_2(test_vm_cfg)
+			my_cmd = self.__prepare_cmd(test_vm_cfg)
 
 			# Run the command
 			self.__log(INFO, "Starting VM {vm_num} with command: {cmd}\n".format(vm_num = i + 1, cmd = my_cmd))
@@ -414,7 +385,7 @@ class auto_qemu:
 			if not self.my_roce.setup_softroce(self.my_username, self.my_password, my_ip):
 				self.__log(ERROR, "SoftROCE configuration Failed!")
 				return False
-			self.__log(INFO, "Passed!\n")
+			self.__log(INFO, "Done!\n")
 
 			# Append to list of ips
 			self.all_ips.append(my_ip)

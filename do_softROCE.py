@@ -64,6 +64,7 @@ class softROCE:
 
 	def __add_rdma_link(self):
 		self.__log(DEBUG, "In arl", self.my_ip, self.my_username, self.my_password)
+		self.__log(INFO, "Adding RDMA link")
 
 		# get the interface name, since "rdma" commands uses names and not IPs
 		self.__log(INFO, "Getting the network device name corresponding to the IP..")
@@ -105,9 +106,12 @@ class softROCE:
 		self.my_password = ssh_password
 		self.my_ip = ssh_ip
 
+		# skipping module insertion since all modules are baked into bzImage
+		'''
 		if not self.__check_insert_module():
 			self.__log(ERROR, "Failure: insert module")
 			return False
+		'''
 
 		if not self.__add_rdma_link():
 			self.__log(ERROR, "Failure: add RDMA link")

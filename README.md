@@ -6,19 +6,20 @@ Usage
 python3 do_qemu.py <path_to_config_file>
 
 
-This collection of scripts performs 2 steps.
+This collection of scripts performs 2 steps
+===========================================
 Step 1
-======
-Following are the actions performed in step 1
-a) Clone the git repo provided (liux kernel)
-b) "make bzImage" for the cloned kernel
+------
+Following are the actions performed in step 1 \
+a) Clone the git repo provided (liux kernel) \
+b) "make bzImage" for the cloned kernel \
 c) Copy the bzImage to our data folder to be used later
 
 Step 2
-======
-a) Spin up number of VMs using the qcow image and the bzImage kernel (from step 1). Number of VMs taken from the config file.
-b) Configure softROCE on those VMs, and create a softROCE rdma port on the eth interface.
-c) Return the IPs of the VMs, on which the rdma is configured.
+------
+a) Spin up number of VMs using the qcow image and the bzImage kernel (from step 1). Number of VMs taken from the config file. \
+b) Configure softROCE on those VMs, and create a softROCE rdma port on the eth interface. \
+c) Return the IPs of the VMs, on which the rdma is configured. \
 
 These IPs can now be used as RDMA ports
 
@@ -41,7 +42,9 @@ A sample config file is present in the main folder, named "config-sample.yml".
 
 Kernel config
 -------------
-A default ".config" file is present with the name "default_kernel_config_file"
+A default ".config" file is present with the name "default_kernel_config_file". \
+This has the needed modules enabled. \
+The make in step 1 uses this config file. \
 
 Prechecks before running the script
 ===================================
@@ -49,14 +52,14 @@ Prechecks before running the script
 
 Host
 ----
-package requirements
+package requirements \
 	qemu libncurses-dev flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf
 
 qcow VM
 -------
-package requirements
-	openssh-server
-start sshd server
+package requirements \
+	openssh-server \
+start sshd server \
 bridged networking working - Check this by launching a qemu VM and making sure connectivity is there between the host and the VM. qemu command sample is present at the bottom of this text
 
 Remember

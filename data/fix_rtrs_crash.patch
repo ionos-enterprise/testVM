@@ -1,0 +1,11 @@
+diff --git a/drivers/block/rnbd/rnbd-srv.c b/drivers/block/rnbd/rnbd-srv.c
+index 86e61523907b..3910c5150442 100644
+--- a/drivers/block/rnbd/rnbd-srv.c
++++ b/drivers/block/rnbd/rnbd-srv.c
+@@ -840,5 +840,5 @@ static void __exit rnbd_srv_cleanup_module(void)
+        rnbd_srv_destroy_sysfs_files();
+ }
+ 
+-module_init(rnbd_srv_init_module);
++late_initcall_sync(rnbd_srv_init_module);
+ module_exit(rnbd_srv_cleanup_module);
