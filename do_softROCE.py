@@ -68,13 +68,13 @@ class softROCE:
 
 		# get the interface name, since "rdma" commands uses names and not IPs
 		self.__log(INFO, "Getting the network device name corresponding to the IP..")
-		command = "netstat -ie | grep -B1 {ip} | head -n1 | awk '{{print $1}}'".format(ip = self.my_ip)
+		command = "ip -o -4 a | grep {ip} | awk '{{print $2}}'".format(ip = self.my_ip)
 		self.__log(DEBUG, command)
 		status, status_string = self.__run_command_remote(command)
 		if not status:
 			self.__log(ERROR, status_string)
 			return False
-		netdev = status_string[0][:-2]
+		netdev = status_string[0]
 		self.__log(INFO, "Done!")
 		self.__log(DEBUG, "IP {ip} belongs to network device {netdev}".format(ip = self.my_ip, netdev = netdev))
 
