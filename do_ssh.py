@@ -16,7 +16,7 @@ class SSH:
 		"""
 		client = paramiko.SSHClient()
 		client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		client.connect(hostname=ssh_machine, username=ssh_username, password=ssh_password, timeout=10)
+		client.connect(hostname=ssh_machine, username=ssh_username, password=ssh_password, look_for_keys=False, allow_agent=False, timeout=10)
 		return client
 
 	def run_command(self, ssh_username, ssh_password, ssh_machine, command="ls", jobid="None"):
