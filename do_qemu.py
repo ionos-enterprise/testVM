@@ -135,8 +135,12 @@ class auto_qemu:
 		return returncode, s
 
 	def __run_sudo_command_local(self, command):
-		# TODO
-		pass
+		command = "sudo -S " + command
+
+		feed_password = subprocess.Popen("echo " + self.host_password, stdout=subprocess.PIPE, shell=True)
+		status_string = subprocess.Popen(command, stdin=feed_password.stdout, stdout=subprocess.PIPE, shell=True)
+
+		return status_string
 
 	def __check_host_dependencies(self):
 		self.__log(DEBUG, "Checking host dependencies")
@@ -227,12 +231,9 @@ class auto_qemu:
 		return False
 
 	def __spin_up_qemu_vm(self, command):
-		command = "sudo -S " + command
+		status_string = self.__run_sudo_command_local(command)
 
-		feed_password = subprocess.Popen("echo " + self.host_password, stdout=subprocess.PIPE, shell=True)
-		status_string = subprocess.Popen(command, stdin=feed_password.stdout, stdout=subprocess.PIPE, shell=True)
-
-		self.__log(DEBUG, "Popen called. Wait for 1 min.")
+		self.__log(DEBUG, "Ran qemu command. Wait for 1 min.")
 		self.__log(DEBUG, status_string, "\n")
 		# waiting for a min for the vm to spin up
 		time.sleep(60)
