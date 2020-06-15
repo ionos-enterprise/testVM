@@ -3,7 +3,7 @@ do_automate scripts
 
 Usage
 =====
-python3 do_qemu.py <path_to_config_file>
+python3 do_qemu.py -c CONFIG_FILE [-h] [-g GIT_REPO]
 
 
 This collection of scripts performs 2 steps
@@ -29,15 +29,16 @@ Config
 
 Script config
 -------------
+Use the "-g" command line option to supply the git repository.
+
 The script reads the configuration from the YAML config file given as a command line argument.
 Description of the parameters below,
-1. Git repository with the kernel including IBNBD patches
-2. The path to the qcow image of the VM
-3. block device name of the VM on which the os is installed (sda1)
-4. host bridge name for networking
-5. VM root username and password
-6. Number of VMs to be launched and configured in step 2
-7. Number of cpu and RAM for VMs in step 2
+1. The path to the qcow image of the VM
+2. block device name of the VM on which the os is installed (sda1)
+3. host bridge name for networking
+4. VM root username and password
+5. Number of VMs to be launched and configured in step 2
+6. Number of cpu and RAM for VMs in step 2
 A sample config file is present in the main folder, named "config-sample.yml".
 
 Kernel config
@@ -66,7 +67,7 @@ Remember
 ========
 * Create a new "config.yml" and use that as a config file. Do not use the file "config-sample.yml". It is just a sample, and is tracked by git.
 * Do not forget to shutdown the VMs created in step 1, after using them.
-* If step 1 is to be skipped, replace the git_repo in the config file with an empty string. Do keep a valid bzImage in the "data" folder in such case.
+* If step 1 is to be skipped, do not provide the git repo in the command line while running the script. Do keep a valid bzImage in the "data" folder in such case.
 * In case of failure and exit of the script, there is a slight chance that there might be a qemu VM running at the background. Use "ps -aux | grep qemu" to identify and kill those orphan VMs.
 
 qemu command sample

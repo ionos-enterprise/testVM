@@ -1,5 +1,4 @@
 main:
-    git_repo: https://github.com/torvalds/linux.git # git repo for kernel code
     qcow_image: ./data/ubuntu.qcow2 # location of the qcow image
     block_dev: sda1 # block device
     bridge: br0 # bridge name

@@ -3,6 +3,7 @@ import yaml
 import random
 import subprocess
 import time
+from argparse import ArgumentParser, SUPPRESS
 from getpass import getpass
 from datetime import datetime
 
@@ -27,7 +28,9 @@ log_dict = {
 
 
 class auto_qemu:
-	def __init__(self, config_file):
+	def __init__(self, config_file, git_repo):
+		self.git_repo = git_repo
+
 		with open(config_file, 'r') as stream:
 			cfg = yaml.safe_load(stream)
 
@@ -35,7 +38,6 @@ class auto_qemu:
 		self.test_vm_cfg = cfg["test_vm_config"]
 
 		# Reading the main configs
-		self.git_repo = self.main_cfg['git_repo']
 		self.qcow_image = self.main_cfg['qcow_image']
 		self.block_dev = self.main_cfg['block_dev']
 		self.bridge = self.main_cfg['bridge']
@@ -421,6 +423,7 @@ class auto_qemu:
 
 		self.__log(INFO, "******** Starting step 2 ********")
 		if not self.__launch_vms(self.test_vm_cfg):
+			# Should we check and shutdown VMs here?
 			self.__log(ERROR, "Failure in step 2")
 			return False
 		self.__log(INFO, "******** Step 2 Finished ********\n\n")
@@ -435,20 +438,27 @@ class auto_qemu:
 
 		return self.all_ips
 
-	def build_new(config_file):
+	def build_new(self, config_file, git_repo):
 		# If you have an existing object, and want to reinitialize it.
 		self.__log(INFO, "Reconfiguring parameters from config file")
-		self.__init__(config_file)
+		self.__init__(config_file, git_repo)
 
 if __name__ == "__main__":
-	if len(sys.argv) > 1:
-		config_file = sys.argv[1]
-	else:
-		print("Error")
-		print("Usage:")
-		print("python3 do_qemu.py <path_to_config_file>")
-		exit()
-	print("Using config file", config_file)
+	parser = ArgumentParser(add_help=False)
+	req_arg = parser.add_argument_group('required arguments')
+	opt_arg = parser.add_argument_group('optional arguments')
 
-	my_qemu = auto_qemu(config_file)
+	req_arg.add_argument("-c", "--config-file", help="set config file.", required=True)
+
+	opt_arg.add_argument(
+		'-h',
+		'--help',
+		action='help',
+		default=SUPPRESS,
+		help='show this help message and exit'
+	)
+	opt_arg.add_argument("-g", "--git-repo",help="set git repository. Leave this blank to skip step 1.")
+	args = parser.parse_args()
+
+	my_qemu = auto_qemu(args.config_file, args.git_repo)
 	my_qemu.start_auto()
