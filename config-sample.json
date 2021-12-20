@@ -1,0 +1,49 @@
+{
+        "server-class-1": {
+                "mode":         "snapshot",
+
+                "num_of_cpu":	4,
+                "ram_size":	8192,
+
+                "qcow":         "/home/test/debian_new.qcow2",
+                "block_dev":    "vda1",
+                "username":     "root",
+                "password":     "root",
+
+                "bridges":      ["virbr0","virbr1"],
+
+                "kernel_code":  "/home/test/linux/",
+                "modules":      ["/home/test/abc/"],
+		"scsi_images":	["/home/test/disk1.qcow2"]
+        },
+
+        "storage-class-1": {
+                "mode":         "persistent",
+
+                "num_of_cpu":	4,
+                "ram_size":	8192,
+
+                "qcow":         "/home/test/debian_new.qcow2",
+                "block_dev":    "vda1",
+                "username":     "root",
+                "password":     "root",
+
+                "bridges":      ["virbr0","virbr1"],
+
+                "kernel_code":  "/home/test/linux/",
+                "modules":      ["/home/test/abc/"],
+		"scsi_images":	["/home/test/disk2.qcow2"]
+        },
+
+	"server": {
+		"vm_class":     "server-class-1",
+		"num_of_vm":    2
+	},
+
+	"storage": {
+		"vm_class":     "storage-class-1",
+		"num_of_vm":    1
+	},
+
+	"log_level": "INFO"
+}
