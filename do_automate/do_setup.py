@@ -192,7 +192,7 @@ class do_setup:
 			self.__log("Fail! ", status_string)
 			return False
 
-		command = "debootstrap --include=iproute2,network-manager,openssh-server,sudo,infiniband-diags,rdma-core,psmisc,ibverbs-utils,ethtool stable {mount_p} http://deb.debian.org/debian/".format(mount_p = mount_point)
+		command = "debootstrap --include=libpam-systemd,iproute2,network-manager,openssh-server,sudo,infiniband-diags,rdma-core,psmisc,ibverbs-utils,ethtool stable {mount_p} http://deb.debian.org/debian/".format(mount_p = mount_point)
 		status, status_string = self.__run_command_local(command)
 		if status:
 			self.__log("Fail! ", status_string)
